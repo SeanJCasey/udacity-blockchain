@@ -35,22 +35,20 @@ class Blockchain {
   addBlock(newBlock, isGenesis = false) {
     return this.getBlockHeight().then((previousBlockHeight) => {
       // Create genesis block if none exists, and don't allow new Genesis block if one exists
-      if (previousBlockHeight == 0) {
+      if (previousBlockHeight == -1) {
         // Return the stored genesisBlock if newBlock was intended as the genesis block
         if (isGenesis) {
-          newBlock.height = 1;
           newBlock.time = new Date().getTime().toString().slice(0,-3);
           return this.hashAndWriteBlock(newBlock);
         }
         // Else, create a genesis block and proceed to newBlock
         let genesisBlock = new Block("First block in the chain - Genesis block");
-        genesisBlock.height = 1;
         genesisBlock.time = new Date().getTime().toString().slice(0,-3);
         this.hashAndWriteBlock(genesisBlock);
-        previousBlockHeight = 1;
+        previousBlockHeight = genesisBlock.height;
       }
       // Just return the original genesis block if a genesis block is being created for an existing chain
-      if (isGenesis && previousBlockHeight != 0) {
+      if (isGenesis && previousBlockHeight != -1) {
         return this.getBlock(previousBlockHeight)
       }
 
@@ -84,7 +82,7 @@ class Blockchain {
       if (keysArray.length) {
         return Math.max(...keysArray);
       }
-      return 0;
+      return -1;
     });
   }
 
@@ -119,7 +117,7 @@ class Blockchain {
       console.log(error);
     });
   }
-  validateBlockInChain(blockHeight, maxBlockHeight = 0) {
+  validateBlockInChain(blockHeight, maxBlockHeight) {
     let validationPromises = []
 
     // Validate block

@@ -216,7 +216,10 @@ class BlockController {
             path: '/block/{blockheight}',
             handler: (request, h) => {
                 return this.blockchain.getBlock(request.params.blockheight).then((block) => {
-                        block.body.star.storyDecoded = new Buffer(block.body.star.story, 'hex').toString('ascii');
+                        // If the block is a star registration entry, decode the story to ASCII for output
+                        if (block.body.star) {
+                            block.body.star.storyDecoded = new Buffer(block.body.star.story, 'hex').toString('ascii');
+                        }
                         return block;
                     })
                     .catch((err) => {

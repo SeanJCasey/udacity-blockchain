@@ -10,6 +10,7 @@ Also used are `bitcoinjs-message` and `bitcoinjs-lib` for verifying Bitcoin addr
 
 Install these and other required packages using `npm install`
 
+After installing the required packages, start the server by running `node app.js`
 
 ## Endpoints
 

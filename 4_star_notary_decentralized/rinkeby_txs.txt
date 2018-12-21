@@ -1,0 +1,13 @@
+RINKEBY NETWORK TRANSACTIONS
+
+The author of this project deployed the StarNotary smart contract to the Rinkeby test network, and invoked a couple initial operations.
+
+
+Contract: 0x97b381369988a730a56a5a1ccc5f748a7c6e2ccb
+
+New star
+    tx: 0x3647acca8d8e6aac60c42f83a9169a3dbb3c0b4a4adaf245f0af3c03225a2a84
+    tokenId: 1
+
+Put star up for sale
+    tx: 0x848828d3af2f03430c9803a1a4a450a2e5893b4c42e049b26e3bbfe98788f130

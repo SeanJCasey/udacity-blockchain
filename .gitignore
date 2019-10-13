@@ -1,3 +1,7 @@
 **/chaindata
 **node_modules
+
+# Local dirs and files
 *.DS_Store
+ethereum_tutorials/
+*.sublime-workspace

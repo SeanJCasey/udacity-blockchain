@@ -5,3 +5,6 @@
 *.DS_Store
 ethereum_tutorials/
 *.sublime-workspace
+
+# Build dir
+build/

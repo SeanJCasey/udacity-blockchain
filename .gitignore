@@ -8,3 +8,7 @@ ethereum_tutorials/
 
 # Build dir
 build/
+
+# Private files
+.env
+.secret

@@ -3,6 +3,7 @@
 
 # Local dirs and files
 *.DS_Store
+advanced_exercises/
 ethereum_tutorials/
 *.sublime-workspace
 

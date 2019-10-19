@@ -5,12 +5,64 @@ import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 contract FlightSuretyData {
     using SafeMath for uint256;
 
+    address private appContract;
     address private contractOwner;
+    address[] private airlines;
     bool private operational;
+    uint private airlineFundMin;
+    uint8 constant multisigSuccessPercent = 50;
+    uint8 constant multisigMinParticipants = 4;
+    uint8 constant payoutPercent = 150;
 
-    constructor() public {
+    enum AirlineState { None, Pending, Approved, Active }
+    struct AirlineInfo {
+        uint amountFunded;
+        AirlineState state;
+        address[] approvalVotes;
+    }
+    mapping(address => AirlineInfo) private addressToAirlineInfo;
+
+    enum PlanState { None, Available, PaidOut }
+    struct PlanInfo {
+        PlanState state;
+        address[] insurees;
+        mapping(address => uint) insureeToAmount;
+    }
+    mapping(bytes32 => PlanInfo) private flightToPlanInfo;
+    mapping(address => uint) private insureeToBalance;
+
+    mapping(address => bool) private authorizedCallers;
+
+    constructor(address _airline) public {
+        airlineFundMin = 10 ether;
         contractOwner = msg.sender;
         operational = true;
+
+        addNewAirline(_airline, msg.sender);
+    }
+
+    modifier onlyApprovedAirline() {
+        require(
+            isApprovedAirline(msg.sender),
+            "Caller is not an approved airline"
+        );
+        _;
+    }
+
+    modifier onlyActiveAirline() {
+        require(
+            isActiveAirline(msg.sender),
+            "Caller is not an active airline"
+        );
+        _;
+    }
+
+    modifier onlyAuthorizedCaller() {
+        require(
+            isAuthorizedCaller(msg.sender),
+            "Caller is not authorized"
+        );
+        _;
     }
 
     modifier requireIsOperational() {
@@ -18,45 +70,179 @@ contract FlightSuretyData {
         _;
     }
 
-    modifier requireContractOwner()
-    {
+    modifier requireContractOwner() {
         require(msg.sender == contractOwner, "Caller is not contract owner");
         _;
     }
 
-    function isOperational() public view returns(bool) {
+    function authorizeCaller(address _caller) external requireContractOwner {
+        require(
+            !isAuthorizedCaller(_caller),
+            "Address is already authorized"
+        );
+        authorizedCallers[_caller] = true;
+    }
+
+    function deauthorizeCaller(address _caller) external requireContractOwner {
+        require(
+            !isAuthorizedCaller(_caller),
+            "Caller is already not authorized"
+        );
+        authorizedCallers[_caller] = false;
+    }
+
+    function isActiveAirline(address _airline)
+        view
+        public
+        returns (bool)
+    {
+        return addressToAirlineInfo[_airline].state == AirlineState.Active;
+    }
+
+    function isApprovedAirline(address _airline)
+        view
+        public
+        returns (bool)
+    {
+        return (
+            addressToAirlineInfo[_airline].state == AirlineState.Approved ||
+            addressToAirlineInfo[_airline].state == AirlineState.Active
+        );
+    }
+
+    function isAuthorizedCaller(address _caller) view private returns (bool) {
+        return authorizedCallers[_caller];
+    }
+
+    function isOperational() view public returns (bool) {
         return operational;
     }
 
+    function setAppContract(address _appContract) external requireContractOwner {
+        appContract = _appContract;
+    }
 
     function setOperatingStatus(bool _mode) external requireContractOwner {
         operational = _mode;
     }
 
-    function registerAirline(address) external pure {
-
+    function isMultisigSuccess(uint _votes) view internal returns (bool) {
+        assert(_votes > 0);
+        return _votes.mul(100).div(airlines.length) >= multisigSuccessPercent;
     }
 
-    function buy() external payable {
+    function addNewAirline(address _airline, address _registerer) private {
+        addressToAirlineInfo[_airline].approvalVotes.push(_registerer);
 
+        // Auto-approve airline if not min for multisig
+        if (airlines.length < multisigMinParticipants) {
+            addressToAirlineInfo[_airline].state = AirlineState.Approved;
+        }
+        else {
+            addressToAirlineInfo[_airline].state = AirlineState.Pending;
+        }
+
+        // Add to list of airlines
+        airlines.push(_airline);
     }
 
-    function creditInsurees() external pure {
+    function registerAirline(address _airline, address _registerer)
+        public
+        onlyAuthorizedCaller
+        returns (bool approved_, uint votes_)
+    {
+        require(
+            !isApprovedAirline(_airline),
+            "Airline is already approved"
+        );
 
+        if (addressToAirlineInfo[_airline].state == AirlineState.Pending) {
+            incrementAirlineApprovalVote(_airline, _registerer);
+        }
+        else {
+            addNewAirline(_airline, _registerer);
+        }
+
+        return (
+            isApprovedAirline(_airline),
+            addressToAirlineInfo[_airline].approvalVotes.length
+        );
     }
 
-    function pay() external pure {
+    function registerFlight(
+        address _airline,
+        string _flight,
+        uint _timestamp
+    )
+        external
+        onlyAuthorizedCaller
+    {
+        bytes32 key = getFlightKey(_airline, _flight, _timestamp);
+        require(flightToPlanInfo[key].state == PlanState.None, "Flight already registered");
 
+        flightToPlanInfo[key].state = PlanState.Available;
     }
 
-    function fund() public payable {
+    function buy(address _airline, string _flight, uint _timestamp)
+        external
+        payable
+    {
+        require(msg.value > 0);
+        bytes32 key = getFlightKey(_airline, _flight, _timestamp);
+        require(flightToPlanInfo[key].state == PlanState.Available);
 
+        PlanInfo storage plan = flightToPlanInfo[key];
+        plan.insurees.push(msg.sender);
+        plan.insureeToAmount[msg.sender] = msg.value;
+    }
+
+    function calculatePayout(uint _paidAmount) pure internal returns (uint) {
+        return _paidAmount.mul(payoutPercent).div(100);
+    }
+
+    function creditInsurees(
+        address _airline,
+        string _flight,
+        uint _timestamp
+    )
+        external
+        onlyAuthorizedCaller
+    {
+        bytes32 key = getFlightKey(_airline, _flight, _timestamp);
+        PlanInfo storage plan = flightToPlanInfo[key];
+        require(plan.state != PlanState.PaidOut, "Plan has already paid out");
+        require(plan.insurees.length > 0, "Plan has no insurees");
+
+        for(uint i = 0; i < plan.insurees.length; i++) {
+            address insuree = plan.insurees[i];
+            insureeToBalance[insuree] += calculatePayout(plan.insureeToAmount[insuree]);
+        }
+        plan.state = PlanState.PaidOut;
+    }
+
+    function withdrawBalance() external {
+        uint balance = insureeToBalance[msg.sender];
+        require(balance > 0, "User has no balance owed");
+
+        insureeToBalance[msg.sender] = 0;
+        msg.sender.transfer(balance);
+    }
+
+    function fund() public payable onlyApprovedAirline {
+        AirlineInfo storage airline = addressToAirlineInfo[msg.sender];
+        airline.amountFunded += msg.value;
+        if (
+            airline.state == AirlineState.Approved &&
+            airline.amountFunded >= airlineFundMin
+        ) {
+            airline.state = AirlineState.Active;
+        }
     }
 
     function getFlightKey(
         address _airline,
         string memory _flight,
-        uint256 _timestamp
+        uint _timestamp
     )
         pure
         internal
@@ -69,4 +255,23 @@ contract FlightSuretyData {
         fund();
     }
 
+    function incrementAirlineApprovalVote(address _airline, address _registerer) private {
+        AirlineInfo storage airline = addressToAirlineInfo[_airline];
+
+        // Validate sender has not already voted
+        bool isDuplicate = false;
+        for(uint i = 0; i < addressToAirlineInfo[_airline].approvalVotes.length; i++) {
+            if (airline.approvalVotes[i] == _registerer) {
+                isDuplicate = true;
+                break;
+            }
+        }
+        require(!isDuplicate, "Caller has already voted to register airline");
+
+        // Add sender's vote
+        airline.approvalVotes.push(_registerer);
+        if (isMultisigSuccess(airline.approvalVotes.length)) {
+            airline.state = AirlineState.Approved;
+        }
+    }
 }

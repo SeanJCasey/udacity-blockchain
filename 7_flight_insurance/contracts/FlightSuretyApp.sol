@@ -15,6 +15,8 @@ contract FlightSuretyApp {
 
     address private contractOwner;
 
+    IDataContract private dataContract;
+
     struct Flight {
         bool isRegistered;
         uint8 statusCode;
@@ -22,6 +24,14 @@ contract FlightSuretyApp {
         address airline;
     }
     mapping(bytes32 => Flight) private flights;
+
+    modifier onlyActiveAirline() {
+        require(
+            dataContract.isActiveAirline(msg.sender),
+            "Caller is not an active airline"
+        );
+        _;
+    }
 
     modifier requireIsOperational() {
         require(true, "Contract is currently not operational");
@@ -33,26 +43,34 @@ contract FlightSuretyApp {
         _;
     }
 
-    constructor() public {
+    constructor(address _dataContract) public {
         contractOwner = msg.sender;
+        dataContract = IDataContract(_dataContract);
     }
 
     function isOperational() public pure returns(bool) {
         return true;
     }
 
-    function registerAirline()
+    function registerAirline(address _airline)
         external
-        pure
-        returns (bool success_, uint256 votes_)
+        onlyActiveAirline
+        returns (bool approved_, uint256 votes_)
     {
-        return (success_, 0);
+        (approved_, votes_) = dataContract.registerAirline(_airline, msg.sender);
     }
 
-    function registerFlight() external pure {
-
+    function registerFlight(
+        string _flight,
+        uint256 _timestamp
+    )
+        external
+        onlyActiveAirline
+    {
+        dataContract.registerFlight(msg.sender, _flight, _timestamp);
     }
 
+    // Called when flight status is verified
     function processFlightStatus(
         address _airline,
         string memory _flight,
@@ -60,9 +78,10 @@ contract FlightSuretyApp {
         uint8 _statusCode
     )
         internal
-        pure
     {
-
+        if (_statusCode == STATUS_CODE_LATE_AIRLINE) {
+            dataContract.creditInsurees(_airline, _flight, _timestamp);
+        }
     }
 
     // Generate a request for oracles to fetch flight information
@@ -233,4 +252,11 @@ contract FlightSuretyApp {
 
 // endregion
 
+}
+
+interface IDataContract {
+    function creditInsurees(address _airline, string _flight, uint timestamp) external;
+    function isActiveAirline(address _airline) view external returns (bool);
+    function registerAirline(address _airline, address _registerer) external returns (bool, uint);
+    function registerFlight(address _airline, string _flight, uint timestamp) external;
 }

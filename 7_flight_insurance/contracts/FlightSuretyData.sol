@@ -9,7 +9,8 @@ contract FlightSuretyData {
     address private contractOwner;
     address[] private airlines;
     bool private operational;
-    uint private airlineFundMin;
+    uint constant airlineFundMin = 10 ether;
+    uint constant insuranceAmountMax = 1 ether;
     uint8 constant multisigSuccessPercent = 50;
     uint8 constant multisigMinParticipants = 4;
     uint8 constant payoutPercent = 150;
@@ -34,7 +35,6 @@ contract FlightSuretyData {
     mapping(address => bool) private authorizedCallers;
 
     constructor(address _airline) public {
-        airlineFundMin = 10 ether;
         contractOwner = msg.sender;
         operational = true;
 
@@ -183,17 +183,27 @@ contract FlightSuretyData {
         flightToPlanInfo[key].state = PlanState.Available;
     }
 
-    function buy(address _airline, string _flight, uint _timestamp)
+    function buy(address _airline, string _flight, uint _timestamp, address _insuree)
         external
+        onlyAuthorizedCaller
         payable
     {
-        require(msg.value > 0);
+        require(_insuree != address(0), "No insuree address");
+        require(msg.value > 0, "No ETH sent");
         bytes32 key = getFlightKey(_airline, _flight, _timestamp);
-        require(flightToPlanInfo[key].state == PlanState.Available);
+        require(
+            flightToPlanInfo[key].state == PlanState.Available,
+            "This flight is not insurable"
+        );
 
         PlanInfo storage plan = flightToPlanInfo[key];
-        plan.insurees.push(msg.sender);
-        plan.insureeToAmount[msg.sender] = msg.value;
+        require(
+            plan.insureeToAmount[_insuree] + msg.value <= insuranceAmountMax,
+            "Total insurance amount over limit"
+        );
+
+        plan.insurees.push(_insuree);
+        plan.insureeToAmount[_insuree] += msg.value;
     }
 
     function calculatePayout(uint _paidAmount) pure internal returns (uint) {
@@ -220,12 +230,12 @@ contract FlightSuretyData {
         plan.state = PlanState.PaidOut;
     }
 
-    function withdrawBalance() external {
-        uint balance = insureeToBalance[msg.sender];
+    function withdrawBalance(address _insuree) external onlyAuthorizedCaller {
+        uint balance = insureeToBalance[_insuree];
         require(balance > 0, "User has no balance owed");
 
-        insureeToBalance[msg.sender] = 0;
-        msg.sender.transfer(balance);
+        insureeToBalance[_insuree] = 0;
+        _insuree.transfer(balance);
     }
 
     function fund() public payable onlyApprovedAirline {

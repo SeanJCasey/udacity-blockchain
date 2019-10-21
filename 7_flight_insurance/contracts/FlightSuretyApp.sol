@@ -34,7 +34,7 @@ contract FlightSuretyApp {
     }
 
     modifier requireIsOperational() {
-        require(true, "Contract is currently not operational");
+        require(isOperational(), "Contract is currently not operational");
         _;
     }
 
@@ -48,8 +48,21 @@ contract FlightSuretyApp {
         dataContract = IDataContract(_dataContract);
     }
 
-    function isOperational() public pure returns(bool) {
-        return true;
+
+    function buyInsurance(
+        address _airline,
+        string _flight,
+        uint256 _timestamp
+    )
+        external
+        requireIsOperational
+        payable
+    {
+        dataContract.buy.value(msg.value)(_airline, _flight, _timestamp, msg.sender);
+    }
+
+    function isOperational() view public returns(bool) {
+        return dataContract.isOperational();
     }
 
     function registerAirline(address _airline)
@@ -68,6 +81,10 @@ contract FlightSuretyApp {
         onlyActiveAirline
     {
         dataContract.registerFlight(msg.sender, _flight, _timestamp);
+    }
+
+    function withdrawBalance() external {
+        dataContract.withdrawBalance(msg.sender);
     }
 
     // Called when flight status is verified
@@ -255,8 +272,11 @@ contract FlightSuretyApp {
 }
 
 interface IDataContract {
+    function buy(address _airline, string _flight, uint _timestamp, address _insuree) external payable;
     function creditInsurees(address _airline, string _flight, uint timestamp) external;
     function isActiveAirline(address _airline) view external returns (bool);
+    function isOperational() view external returns (bool);
     function registerAirline(address _airline, address _registerer) external returns (bool, uint);
     function registerFlight(address _airline, string _flight, uint timestamp) external;
+    function withdrawBalance(address _insuree) external;
 }

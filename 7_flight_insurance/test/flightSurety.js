@@ -132,8 +132,8 @@ contract('Flight Surety Tests', async accounts => {
 
   });
 
-  describe('Flight', () => {
-    it('Only airlines can add flights', async () => {
+  describe('Insurance plans', () => {
+    it('can be registered by airlines only', async () => {
       const badFlightCode = "U152";
       const badFlightTimestamp = Math.floor(Date.now() / 1000);
 
@@ -149,6 +149,44 @@ contract('Flight Surety Tests', async accounts => {
 
       assert.equal(didThrow, true, "Random user should not be able to add flight")
     });
-  });
 
+    it('can be bought by a user for up to 1 ETH', async () => {
+      let didThrow = false;
+      try {
+        await config.flightSuretyApp.buyInsurance(
+          flightAirline1,
+          flightCode1,
+          flightTimestamp1,
+          {
+              value: web3.utils.toWei("1.1", "ether"),
+              from: insuree
+          }
+        );
+      }
+      catch(e) {
+        didThrow = true;
+      }
+
+      await config.flightSuretyApp.buyInsurance(
+        flightAirline1,
+        flightCode1,
+        flightTimestamp1,
+        {
+            value: web3.utils.toWei("0.5", "ether"),
+            from: insuree
+        }
+      );
+      await config.flightSuretyApp.buyInsurance(
+        flightAirline1,
+        flightCode1,
+        flightTimestamp1,
+        {
+            value: web3.utils.toWei("0.5", "ether"),
+            from: insuree
+        }
+      );
+
+      assert.equal(didThrow, true, "User should not be able to pay more than 1 ETH")
+    });
+  });
 });

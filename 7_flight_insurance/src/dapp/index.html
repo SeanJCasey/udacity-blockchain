@@ -24,7 +24,18 @@
         <div id="display-wrapper" class="top-20">
         </div>
         <div class="row top-20">
-            <label class="form">Flight</label> <input type="text" id="flight-number"> <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
+            <select id="flight-input">
+                <option value="1">Flight U150 - Oct 16</option>
+                <option value="2">Flight U150 - Oct 17</option>
+                <option value="3">Flight U150 - Oct 18</option>
+            </select>
+            <input type="number" id="amount-input" placeholder="Amount in ETH">
+            <btn class="btn btn-primary" id="submit-buy">Buy insurance</btn>
+            <btn class="btn btn-primary" id="submit-oracle">Submit Claim</btn>
+        </div>
+        <hr />
+        <div class="row top-20">
+            <btn class="btn btn-primary" id="claim-payout">Claim Payout</btn>
         </div>
     </main>
 

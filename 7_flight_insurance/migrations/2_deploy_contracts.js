@@ -28,7 +28,24 @@ module.exports = function(deployer, network, accounts) {
                 localhost: {
                     url: 'http://localhost:8545',
                     dataAddress: FlightSuretyData.address,
-                    appAddress: FlightSuretyApp.address
+                    appAddress: FlightSuretyApp.address,
+                    flights: [
+                        {
+                            airline: firstAirline,
+                            timestamp: 1571220000,
+                            flight: "U150"
+                        },
+                        {
+                            airline: firstAirline,
+                            timestamp: 1571306400,
+                            flight: "U150"
+                        },
+                        {
+                            airline: firstAirline,
+                            timestamp: 1571392800,
+                            flight: "U150"
+                        }
+                    ]
                 }
             }
             fs.writeFileSync(__dirname + '/../src/dapp/config.json',JSON.stringify(config, null, '\t'), 'utf-8');

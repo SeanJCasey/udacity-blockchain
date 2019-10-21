@@ -1,5 +1,6 @@
 
 import http from 'http'
+import 'babel-polyfill'
 import app from './server'
 
 const server = http.createServer(app)

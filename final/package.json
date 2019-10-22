@@ -1,5 +1,5 @@
 {
-  "name": "capstone",
+  "name": "udacity-blockchain-capstone",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,14 +8,17 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "pk <pkrasam@gmail.com> (https://ipfs.infura.io/ipfs/QmSXiR9Khm3yo1J67nUopvVBxFJ8YGN2fUGZ34Etr3m92x/)",
+  "author": "Sean Casey <sean@seanjcasey.com>",
   "license": "MIT",
   "devDependencies": {
-    "lite-server": "2.4.0"
+    "lite-server": "2.4.0",
+    "truffle-plugin-verify": "^0.3.4"
   },
   "dependencies": {
+    "dotenv": "^8.2.0",
     "openzeppelin-solidity": "^2.2.0",
     "solc": "^0.5.2",
-    "solc-js": "^0.5.2"
+    "solc-js": "^0.5.2",
+    "truffle-hdwallet-provider": "^1.0.17"
   }
 }

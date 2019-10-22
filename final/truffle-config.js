@@ -17,14 +17,22 @@
  * phrase from a file you've .gitignored so it doesn't accidentally become public.
  *
  */
+require('dotenv').config()
+const HDWalletProvider = require('truffle-hdwallet-provider');
+const infuraKey = process.env.INFURA_KEY;
 
-// const HDWalletProvider = require('truffle-hdwallet-provider');
-// const infuraKey = "fj4jll3k.....";
-//
-// const fs = require('fs');
-// const mnemonic = fs.readFileSync(".secret").toString().trim();
+const fs = require('fs');
+const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 module.exports = {
+  plugins: [
+    "truffle-plugin-verify"
+  ],
+  // For truffle-plugin-verify
+  api_keys: {
+    etherscan: process.env.ETHERSCAN_API_KEY
+  },
+
   /**
    * Networks define how you connect to your ethereum client and let you set the
    * defaults web3 uses to send transactions. If you don't specify one truffle
@@ -47,6 +55,14 @@ module.exports = {
       port: 8545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
      },
+
+    rinkeby: {
+      provider: () => new HDWalletProvider(mnemonic, `https://rinkeby.infura.io/v3/${infuraKey}`),
+      network_id: 4,         // Rinkeby's id
+      gas: 6500000,          // Rinkeby has a lower block limit than mainnet
+      gasPrice: 2000000000,  // 2 gwei (in wei) (default: 100 gwei)
+      skipDryRun: true       // Skip dry run before migrations? (default: false for public nets )
+    }
 
     // Another network with more advanced options...
     // advanced: {

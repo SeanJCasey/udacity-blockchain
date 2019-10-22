@@ -10,8 +10,8 @@ contract('TestPropertyToken', accounts => {
             this.contract = await PropertyToken.new({from: account_one});
 
             // TODO: mint multiple tokens
-            this.contract.mint(account_one, 1, "test1", { from: account_one });
-            this.contract.mint(account_two, 2, "test2", { from: account_one });
+            this.contract.mint(account_one, 1, { from: account_one });
+            this.contract.mint(account_two, 2, { from: account_one });
         })
 
         it('should return total supply', async function () {
@@ -27,7 +27,7 @@ contract('TestPropertyToken', accounts => {
         // token uri should be complete i.e: https://s3-us-west-2.amazonaws.com/udacity-blockchain/capstone/1
         it('should return token uri', async function () {
             const tokenURI = await this.contract.tokenURI(1);
-            const expectedURI = "https://s3-us-west-2.amazonaws.com/udacity-blockchain/capstone/test1";
+            const expectedURI = "https://s3-us-west-2.amazonaws.com/udacity-blockchain/capstone/1";
             assert.equal(tokenURI, expectedURI, `Unexpected token URI: ${tokenURI}`);
         })
 
@@ -46,7 +46,7 @@ contract('TestPropertyToken', accounts => {
         it('should fail when minting when address is not contract owner', async function () {
             let didThrow = false;
             try {
-                await this.contract.mint(account_two, 1, "test1", { from: account_two });
+                await this.contract.mint(account_two, 1, { from: account_two });
             }
             catch(e) {
                 didThrow = true;

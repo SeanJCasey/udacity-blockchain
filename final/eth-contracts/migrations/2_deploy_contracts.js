@@ -5,6 +5,6 @@ const SolnSquareVerifier = artifacts.require("./SolnSquareVerifier.sol");
 
 module.exports = function(deployer) {
   deployer.deploy(PropertyToken);
-  deployer.deploy(SquareVerifier);
-  deployer.deploy(SolnSquareVerifier);
+  deployer.deploy(SquareVerifier)
+    .then(() => deployer.deploy(SolnSquareVerifier, SquareVerifier.address));
 };
